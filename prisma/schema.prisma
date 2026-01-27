@@ -1,0 +1,363 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  PAID
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  YAPE
+  CULQI
+  NIUBIZ
+  IZIPAY
+  CASH
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum Category {
+  ROPA
+  ELECTRONICA
+  ALIMENTOS
+  OTROS
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String
+  role          Role      @default(USER)
+  phone         String?
+  address       String?
+  dni           String?   @unique
+  ruc           String?   @unique
+  businessName  String?   // Razón Social (para facturas)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  orders        Order[]
+  cartItems     CartItem[]
+  reviews       Review[]
+  wishlist      Wishlist[]
+  
+  @@index([email])
+}
+
+model Product {
+  id              String      @id @default(cuid())
+  name            String
+  description     String      @db.Text
+  category        Category
+  price           Float
+  comparePrice    Float?      // Precio de comparación (antes)
+  stock           Int         @default(0)
+  sku             String      @unique
+  images          String[]    // Array de URLs de imágenes
+  featured        Boolean     @default(false)
+  active          Boolean     @default(true)
+  
+  // Filtros específicos por categoría
+  // Ropa
+  sizes           String[]    // ["S", "M", "L", "XL"]
+  colors          String[]    // ["Rojo", "Azul", "Negro"]
+  brand           String?
+  material        String?
+  
+  // Electrónica
+  warranty        String?     // "12 meses", "24 meses"
+  specifications  Json?       // Especificaciones técnicas
+  
+  // SEO
+  slug            String      @unique
+  metaTitle       String?
+  metaDescription String?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  cartItems       CartItem[]
+  orderItems      OrderItem[]
+  reviews         Review[]
+  wishlist        Wishlist[]
+  stockHistory    StockHistory[]
+  
+  @@index([category])
+  @@index([slug])
+  @@index([active])
+}
+
+model CartItem {
+  id          String   @id @default(cuid())
+  userId      String
+  productId   String
+  quantity    Int      @default(1)
+  size        String?
+  color       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, productId, size, color])
+}
+
+model Order {
+  id                String        @id @default(cuid())
+  orderNumber       String        @unique // ORD-2024-0001
+  userId            String
+  
+  // Información del cliente
+  customerName      String
+  customerEmail     String
+  customerPhone     String
+  customerDni       String?
+  customerRuc       String?       // Para factura
+  customerAddress   String
+  
+  // Totales
+  subtotal          Float
+  tax               Float         // IGV 18%
+  discount          Float         @default(0)
+  couponCode        String?       // Código de cupón usado
+  couponDiscount    Float         @default(0)
+  total             Float
+  
+  // Pago
+  paymentMethod     PaymentMethod
+  paymentStatus     PaymentStatus @default(PENDING)
+  paymentReference  String?       // ID de transacción de la pasarela
+  
+  // Estado
+  status            OrderStatus   @default(PENDING)
+  
+  // Notas
+  notes             String?       @db.Text
+  
+  // Fechas
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  paidAt            DateTime?
+  shippedAt         DateTime?
+  deliveredAt       DateTime?
+  
+  user              User          @relation(fields: [userId], references: [id])
+  items             OrderItem[]
+  invoice           Invoice?
+  
+  @@index([orderNumber])
+  @@index([userId])
+  @@index([status])
+  @@index([paymentStatus])
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  productId   String
+  
+  // Snapshot del producto al momento de la compra
+  productName String
+  price       Float
+  quantity    Int
+  size        String?
+  color       String?
+  sku         String
+  imageUrl    String?
+  
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id])
+  
+  @@index([orderId])
+}
+
+model Invoice {
+  id                  String    @id @default(cuid())
+  orderId             String    @unique
+  
+  // Tipo de comprobante
+  documentType        String    // "01" Factura, "03" Boleta
+  series              String    // "F001", "B001"
+  number              Int       // 1, 2, 3...
+  fullNumber          String    @unique // "F001-00000001"
+  
+  // Información del emisor (tu empresa)
+  issuerRuc           String
+  issuerName          String
+  issuerAddress       String
+  
+  // Información del cliente
+  customerType        String    // "6" RUC, "1" DNI
+  customerDocNumber   String
+  customerName        String
+  customerAddress     String?
+  
+  // Importes
+  subtotal            Float
+  igv                 Float     // 18%
+  total               Float
+  
+  // SUNAT
+  sunatStatus         String?   // "ACEPTADO", "RECHAZADO"
+  sunatResponse       Json?     // Respuesta completa de SUNAT
+  sunatCdr            String?   // CDR (Constancia de Recepción)
+  xmlContent          String?   @db.Text // XML generado
+  pdfUrl              String?   // URL del PDF
+  qrCode              String?   // Código QR para validación
+  
+  // Hashes para integridad
+  hash                String?
+  
+  // Fechas
+  issueDate           DateTime  @default(now())
+  dueDate             DateTime?
+  sentToSunatAt       DateTime?
+  
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  order               Order     @relation(fields: [orderId], references: [id])
+  
+  @@index([fullNumber])
+  @@index([customerDocNumber])
+}
+
+model AIConversation {
+  id          String   @id @default(cuid())
+  sessionId   String
+  userId      String?
+  messages    Json     // Array de mensajes [{role: "user"|"assistant", content: "..."}]
+  context     Json?    // Contexto adicional (carrito, productos vistos, etc.)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([sessionId])
+  @@index([userId])
+}
+
+model SiteSettings {
+  id                String   @id @default(cuid())
+  siteName          String   @default("Mi E-commerce")
+  siteDescription   String?  @db.Text
+  logo              String?
+  favicon           String?
+  heroTitle         String?
+  heroSubtitle      String?
+  heroImage         String?
+  heroVideo         String?
+  
+  // SEO
+  metaTitle         String?
+  metaDescription   String?
+  keywords          String[]
+  
+  // Social
+  facebook          String?
+  instagram         String?
+  twitter           String?
+  whatsapp          String?
+  
+  // Configuración
+  maintenanceMode   Boolean  @default(false)
+  allowRegistration Boolean  @default(true)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Coupon {
+  id              String    @id @default(cuid())
+  code            String    @unique
+  discountType    String    // "PERCENTAGE" | "FIXED_AMOUNT"
+  discountValue   Float
+  minPurchase     Float?    // Mínimo de compra requerido
+  maxDiscount     Float?    // Descuento máximo (para porcentajes)
+  usageLimit      Int?      // Límite de usos totales
+  usageCount      Int       @default(0)
+  perUserLimit    Int?      // Límite de usos por usuario
+  validFrom       DateTime  @default(now())
+  validUntil      DateTime?
+  active          Boolean   @default(true)
+  description     String?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([code])
+  @@index([active])
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  userId      String
+  productId   String
+  rating      Int      // 1-5 stars
+  title       String?
+  comment     String?  @db.Text
+  verified    Boolean  @default(false) // Si compró el producto
+  helpful     Int      @default(0)     // Contador de "útil"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, productId]) // Solo una reseña por usuario por producto
+  @@index([productId])
+  @@index([rating])
+}
+
+model Wishlist {
+  id          String   @id @default(cuid())
+  userId      String
+  productId   String
+  createdAt   DateTime @default(now())
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+model StockHistory {
+  id          String   @id @default(cuid())
+  productId   String
+  previousStock Int    // Stock anterior
+  newStock    Int      // Stock nuevo
+  change      Int      // Cambio (positivo o negativo)
+  reason      String?  @db.Text // Razón del cambio (venta física, reposición, etc.)
+  changedBy   String?  // ID del usuario que hizo el cambio (opcional)
+  createdAt   DateTime @default(now())
+  
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@index([productId])
+  @@index([createdAt])
+}
+
