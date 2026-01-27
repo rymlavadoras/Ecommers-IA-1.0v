@@ -38,16 +38,22 @@ export function NiubizPayment({ amount, email, orderId, onSuccess, onError }: Ni
   }
 
   const useTestCard = (type: 'success' | 'fail') => {
+    // Calcular fecha futura (2 años desde ahora)
+    const futureDate = new Date()
+    futureDate.setFullYear(futureDate.getFullYear() + 2)
+    const futureMonth = String(futureDate.getMonth() + 1).padStart(2, '0')
+    const futureYear = String(futureDate.getFullYear())
+    
     if (type === 'success') {
       setCardNumber('4111 1111 1111 1111')
       setCvv('123')
-      setExpiryMonth('09')
-      setExpiryYear('2025')
+      setExpiryMonth(futureMonth)
+      setExpiryYear(futureYear)
     } else {
       setCardNumber('4000 0000 0000 0002')
       setCvv('123')
-      setExpiryMonth('09')
-      setExpiryYear('2025')
+      setExpiryMonth(futureMonth)
+      setExpiryYear(futureYear)
     }
   }
 
@@ -67,7 +73,13 @@ export function NiubizPayment({ amount, email, orderId, onSuccess, onError }: Ni
       if (!expiryMonth || !expiryYear) {
         throw new Error('Fecha de expiración inválida')
       }
-      if (parseInt(expiryYear) < new Date().getFullYear()) {
+      // Validar fecha de expiración (considerando mes y año)
+      const currentYear = new Date().getFullYear()
+      const currentMonth = new Date().getMonth() + 1
+      const expYear = parseInt(expiryYear)
+      const expMonth = parseInt(expiryMonth)
+      
+      if (expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
         throw new Error('La tarjeta está vencida')
       }
 
@@ -88,13 +100,20 @@ export function NiubizPayment({ amount, email, orderId, onSuccess, onError }: Ni
         }),
       })
 
+      // Verificar si la respuesta tiene contenido antes de parsear JSON
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text()
+        throw new Error(text || 'Error al procesar el pago - respuesta inválida del servidor')
+      }
+
       const data = await response.json()
 
       if (!response.ok) {
         throw new Error(data.error || 'Error al procesar el pago')
       }
 
-      onSuccess(data.transactionId)
+      onSuccess(data.transactionId || data.charge?.id || 'niubiz_' + Date.now())
     } catch (error: any) {
       onError(error.message || 'Error al procesar el pago')
     } finally {
@@ -149,7 +168,11 @@ export function NiubizPayment({ amount, email, orderId, onSuccess, onError }: Ni
               </Button>
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              Tarjeta exitosa: 4111 1111 1111 1111 | CVV: 123 | Expira: 09/2025
+              Tarjeta exitosa: 4111 1111 1111 1111 | CVV: 123 | Expira: {(() => {
+                const futureDate = new Date()
+                futureDate.setFullYear(futureDate.getFullYear() + 2)
+                return `${String(futureDate.getMonth() + 1).padStart(2, '0')}/${futureDate.getFullYear()}`
+              })()}
             </p>
           </CardContent>
         </Card>

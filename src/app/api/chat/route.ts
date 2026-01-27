@@ -162,7 +162,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener respuesta del AI
-    const response = await getChatCompletion(messages as ChatMessage[], enrichedContext)
+    let response: string
+    try {
+      response = await getChatCompletion(messages as ChatMessage[], enrichedContext)
+    } catch (aiError: any) {
+      console.error('Error en OpenAI:', aiError)
+      // Si falla la IA, dar respuesta útil basada en los productos encontrados
+      if (products.length > 0) {
+        response = `Aquí están los productos que encontré:\n\n${products.map((p, i) => 
+          `${i + 1}. ${p.name}${p.brand ? ` (${p.brand})` : ''} - S/ ${p.price.toFixed(2)}`
+        ).join('\n')}\n\n¿Te interesa alguno de estos productos?`
+      } else {
+        response = 'Lo siento, no pude encontrar productos específicos para tu búsqueda. ¿Podrías ser más específico? Tenemos ropa, electrónica, alimentos y más.'
+      }
+    }
 
     // Guardar conversación en la base de datos (opcional)
     try {

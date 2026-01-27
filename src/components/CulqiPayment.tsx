@@ -38,16 +38,22 @@ export function CulqiPayment({ amount, email, orderId, onSuccess, onError }: Cul
   }
 
   const useTestCard = (type: 'success' | 'fail') => {
+    // Calcular fecha futura (2 años desde ahora)
+    const futureDate = new Date()
+    futureDate.setFullYear(futureDate.getFullYear() + 2)
+    const futureMonth = String(futureDate.getMonth() + 1).padStart(2, '0')
+    const futureYear = String(futureDate.getFullYear())
+    
     if (type === 'success') {
       setCardNumber('4111 1111 1111 1111')
       setCvv('123')
-      setExpiryMonth('09')
-      setExpiryYear('2025')
+      setExpiryMonth(futureMonth)
+      setExpiryYear(futureYear)
     } else {
       setCardNumber('4000 0000 0000 0002')
       setCvv('123')
-      setExpiryMonth('09')
-      setExpiryYear('2025')
+      setExpiryMonth(futureMonth)
+      setExpiryYear(futureYear)
     }
   }
 
@@ -169,7 +175,11 @@ export function CulqiPayment({ amount, email, orderId, onSuccess, onError }: Cul
               </Button>
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              Tarjeta exitosa: 4111 1111 1111 1111 | CVV: 123 | Expira: 09/2025
+              Tarjeta exitosa: 4111 1111 1111 1111 | CVV: 123 | Expira: {(() => {
+                const futureDate = new Date()
+                futureDate.setFullYear(futureDate.getFullYear() + 2)
+                return `${String(futureDate.getMonth() + 1).padStart(2, '0')}/${futureDate.getFullYear()}`
+              })()}
             </p>
           </CardContent>
         </Card>
