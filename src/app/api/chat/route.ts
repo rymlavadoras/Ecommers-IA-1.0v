@@ -25,55 +25,52 @@ export async function POST(request: NextRequest) {
     
     if (isProductQuery) {
       // Extraer todas las palabras significativas (más de 2 caracteres)
-      const words = msg.split(/\s+/).filter((w: string) => w.length > 2)
+      // Filtrar SOLO palabras que definitivamente no son productos
+      // NO filtrar "hay", "tienes", "tengo" porque pueden ser parte de preguntas válidas
+      const stopWords = ['quiero', 'necesito', 'busco', 'dame', 'muestra', 'mostrar', 'ver', 'quieres', 'puedes', 'me', 'te', 'le', 'se', 'de', 'la', 'el', 'un', 'una', 'unos', 'unas', 'los', 'las', 'del', 'al', 'por', 'para', 'con', 'sin', 'sobre', 'entre']
+      const words = msg.split(/\s+/)
+        .filter((w: string) => w.length > 2) // Palabras de más de 2 caracteres
+        .filter((w: string) => !stopWords.includes(w.toLowerCase())) // Filtrar stop words
       
       // Construir consulta de búsqueda semántica flexible
       const where: any = { active: true }
       
-      // Si hay palabras, buscar en nombre, descripción, marca, categoría y SKU
+      // Si hay palabras, buscar en nombre, descripción, marca y SKU
+      // NOTA: category es un Enum, no se puede usar contains
       if (words.length > 0) {
-        where.OR = words.flatMap((word: string) => [
-          { name: { contains: word, mode: 'insensitive' } },
-          { description: { contains: word, mode: 'insensitive' } },
-          { brand: { contains: word, mode: 'insensitive' } },
-          { sku: { contains: word, mode: 'insensitive' } },
-          { category: { contains: word, mode: 'insensitive' } },
-        ])
+        const orConditions = words.flatMap((word: string) => {
+          const conditions: any[] = [
+            { name: { contains: word, mode: 'insensitive' } },
+            { description: { contains: word, mode: 'insensitive' } },
+            { brand: { contains: word, mode: 'insensitive' } },
+            { sku: { contains: word, mode: 'insensitive' } },
+          ]
+          
+          // category es Enum, buscar por igualdad exacta (sin mode)
+          const categoryUpper = word.toUpperCase()
+          if (['ROPA', 'ELECTRONICA', 'ALIMENTOS', 'OTROS'].includes(categoryUpper)) {
+            conditions.push({ category: categoryUpper })
+          }
+          
+          return conditions
+        })
+        
+        // Solo agregar OR si hay condiciones
+        if (orConditions.length > 0) {
+          where.OR = orConditions
+        }
       }
 
       // Buscar productos con búsqueda flexible
-      products = await prisma.product.findMany({
-        where,
-        take: 8, // Más resultados para mejor matching
-        orderBy: [
-          { featured: 'desc' },
-          { stock: 'desc' }
-        ],
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          price: true,
-          comparePrice: true,
-          brand: true,
-          category: true,
-          stock: true,
-          sku: true,
-          sizes: true,
-          colors: true,
-          images: true,
-        },
-      })
-
-      // Si no encontró resultados específicos, hacer búsqueda más amplia
-      // Buscar productos destacados o populares como fallback
-      if (products.length === 0) {
+      try {
+        await prisma.$connect()
+        
         products = await prisma.product.findMany({
-          where: { active: true },
-          take: 5,
+          where,
+          take: 8, // Más resultados para mejor matching
           orderBy: [
             { featured: 'desc' },
-            { createdAt: 'desc' }
+            { stock: 'desc' }
           ],
           select: {
             id: true,
@@ -90,18 +87,43 @@ export async function POST(request: NextRequest) {
             images: true,
           },
         })
+      } catch (dbError: any) {
+        console.error('Error buscando productos:', dbError.message)
+        
+        // Cerrar conexión si está abierta
+        try {
+          await prisma.$disconnect()
+        } catch (e) {
+          // Ignorar errores al desconectar
+        }
+        
+        // Si falla la BD, lanzar el error para que se maneje arriba
+        const errorMsg = dbError.message || 'Error desconocido'
+        const errorCode = dbError.code || 'UNKNOWN'
+        throw new Error(`Error de conexión a la base de datos (${errorCode}): ${errorMsg}`)
+      }
+
+      // NO hacer búsqueda fallback si no hay resultados específicos
+      // Es mejor mostrar un mensaje útil que productos aleatorios
+      if (products.length === 0) {
+        // products se queda vacío, el mensaje se manejará después
       }
 
       if (products.length > 0) {
         searchResults = `\n\nPRODUCTOS ENCONTRADOS (${products.length}):\n${products.map((p, i) => 
-          `${i + 1}. ${p.name}${p.brand ? ` (${p.brand})` : ''} - S/ ${p.price.toFixed(2)}${p.comparePrice ? ` (antes S/ ${p.comparePrice.toFixed(2)} - ¡${Math.round((p.comparePrice - p.price) / p.comparePrice * 100)}% OFF!)` : ''}\n   ${p.description.substring(0, 100)}...${p.stock < 10 ? `\n   ⚠️ Solo ${p.stock} unidades disponibles` : ''}`
+          `${i + 1}. ${p.name}${p.brand ? ` (${p.brand})` : ''} - S/ ${p.price.toFixed(2)}${p.comparePrice ? ` (antes S/ ${p.comparePrice.toFixed(2)} - ¡${Math.round((p.comparePrice - p.price) / p.comparePrice * 100)}% OFF!)` : ''}\n   ${p.description ? p.description.substring(0, 100) + '...' : 'Sin descripción'}${p.stock < 10 ? `\n   ⚠️ Solo ${p.stock} unidades disponibles` : ''}`
         ).join('\n\n')}`
         
         enrichedContext.products = searchResults
         enrichedContext.productsData = products // Pasar productos completos al contexto
+        enrichedContext.noProductsFound = false // Hay productos encontrados
       } else {
-        searchResults = '\n\n📦 No encontré productos específicos para esa búsqueda. ¿Podrías ser más específico? Tenemos ropa, electrónica, alimentos y más.'
+        // Si no hay productos, indicar que no se encontraron resultados específicos
+        const searchTerms = words.length > 0 ? words.join(', ') : msg
+        searchResults = `\n\n📦 No encontré productos específicos para "${searchTerms}".`
         enrichedContext.products = searchResults
+        enrichedContext.noProductsFound = true
+        enrichedContext.searchTerms = searchTerms
       }
     }
 
@@ -166,14 +188,17 @@ export async function POST(request: NextRequest) {
     try {
       response = await getChatCompletion(messages as ChatMessage[], enrichedContext)
     } catch (aiError: any) {
-      console.error('Error en OpenAI:', aiError)
+      console.error('Error en OpenAI:', aiError.message)
       // Si falla la IA, dar respuesta útil basada en los productos encontrados
       if (products.length > 0) {
         response = `Aquí están los productos que encontré:\n\n${products.map((p, i) => 
           `${i + 1}. ${p.name}${p.brand ? ` (${p.brand})` : ''} - S/ ${p.price.toFixed(2)}`
         ).join('\n')}\n\n¿Te interesa alguno de estos productos?`
       } else {
-        response = 'Lo siento, no pude encontrar productos específicos para tu búsqueda. ¿Podrías ser más específico? Tenemos ropa, electrónica, alimentos y más.'
+        // Usar getAutoResponse como fallback
+        const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop()?.content || ''
+        const openaiModule = await import('@/lib/openai')
+        response = openaiModule.getAutoResponse(lastUserMessage, enrichedContext)
       }
     }
 
@@ -189,7 +214,6 @@ export async function POST(request: NextRequest) {
       })
     } catch (dbError) {
       // Ignorar errores de DB en chat, no crítico
-      console.log('No se pudo guardar conversación (no crítico):', dbError)
     }
 
     return NextResponse.json({ 
@@ -199,9 +223,26 @@ export async function POST(request: NextRequest) {
       selectedProduct: specificProduct || null,
     })
   } catch (error: any) {
-    console.error('Error en chat API:', error)
+    console.error('Error en chat API:', error.message)
+    
+    // Si es un error de BD, dar mensaje más específico
+    if (error.message?.includes('conexión a la base de datos') || error.message?.includes('database') || error.code === 'P1001') {
+      return NextResponse.json(
+        { 
+          error: 'Error de conexión a la base de datos', 
+          details: error.message,
+          suggestion: 'Verifica que la base de datos esté configurada correctamente en las variables de entorno.'
+        },
+        { status: 500 }
+      )
+    }
+    
     return NextResponse.json(
-      { error: 'Error al procesar el mensaje', details: error.message },
+      { 
+        error: 'Error al procesar el mensaje', 
+        details: error.message || 'Error desconocido',
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     )
   }

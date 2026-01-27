@@ -203,7 +203,7 @@ export default function CouponsAdminPage() {
   return (
     <FeatureGuard feature="COUPONS">
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <header className="bg-white border-b">
+      <header className="bg-white dark:bg-gray-900 border-b dark:border-gray-800">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -213,8 +213,8 @@ export default function CouponsAdminPage() {
                 </Link>
               </Button>
               <div>
-                <h1 className="text-2xl font-bold">Gestión de Cupones</h1>
-                <p className="text-sm text-gray-600">
+                <h1 className="text-2xl font-bold dark:text-white">Gestión de Cupones</h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   Crea y administra códigos de descuento
                 </p>
               </div>
@@ -230,15 +230,15 @@ export default function CouponsAdminPage() {
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Formulario */}
         {showForm && (
-          <Card className="mb-6">
+          <Card className="mb-6 bg-white dark:bg-gray-800">
             <CardHeader>
-              <CardTitle>{editingId ? 'Editar' : 'Crear'} Cupón</CardTitle>
+              <CardTitle className="dark:text-white">{editingId ? 'Editar' : 'Crear'} Cupón</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="code">Código del Cupón *</Label>
+                    <Label htmlFor="code" className="dark:text-gray-300">Código del Cupón *</Label>
                     <Input
                       id="code"
                       value={formData.code}
@@ -246,27 +246,28 @@ export default function CouponsAdminPage() {
                       placeholder="VERANO2025"
                       required
                       maxLength={20}
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="discountType">Tipo de Descuento *</Label>
+                    <Label htmlFor="discountType" className="dark:text-gray-300">Tipo de Descuento *</Label>
                     <Select
                       value={formData.discountType}
                       onValueChange={(value) => setFormData({...formData, discountType: value})}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="PERCENTAGE">Porcentaje (%)</SelectItem>
-                        <SelectItem value="FIXED_AMOUNT">Monto Fijo (S/)</SelectItem>
+                      <SelectContent className="dark:bg-gray-800">
+                        <SelectItem value="PERCENTAGE" className="dark:text-white">Porcentaje (%)</SelectItem>
+                        <SelectItem value="FIXED_AMOUNT" className="dark:text-white">Monto Fijo (S/)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div>
-                    <Label htmlFor="discountValue">
+                    <Label htmlFor="discountValue" className="dark:text-gray-300">
                       Valor del Descuento * {formData.discountType === 'PERCENTAGE' ? '(%)' : '(S/)'}
                     </Label>
                     <Input
@@ -278,12 +279,13 @@ export default function CouponsAdminPage() {
                       required
                       min="0"
                       max={formData.discountType === 'PERCENTAGE' ? '100' : undefined}
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     />
                   </div>
 
                   {formData.discountType === 'PERCENTAGE' && (
                     <div>
-                      <Label htmlFor="maxDiscount">Descuento Máximo (S/)</Label>
+                      <Label htmlFor="maxDiscount" className="dark:text-gray-300">Descuento Máximo (S/)</Label>
                       <Input
                         id="maxDiscount"
                         type="number"
@@ -291,12 +293,13 @@ export default function CouponsAdminPage() {
                         value={formData.maxDiscount}
                         onChange={(e) => setFormData({...formData, maxDiscount: e.target.value})}
                         placeholder="Opcional"
+                        className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                       />
                     </div>
                   )}
 
                   <div>
-                    <Label htmlFor="minPurchase">Compra Mínima (S/)</Label>
+                    <Label htmlFor="minPurchase" className="dark:text-gray-300">Compra Mínima (S/)</Label>
                     <Input
                       id="minPurchase"
                       type="number"
@@ -304,61 +307,67 @@ export default function CouponsAdminPage() {
                       value={formData.minPurchase}
                       onChange={(e) => setFormData({...formData, minPurchase: e.target.value})}
                       placeholder="Opcional"
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="usageLimit">Límite de Usos Total</Label>
+                    <Label htmlFor="usageLimit" className="dark:text-gray-300">Límite de Usos Total</Label>
                     <Input
                       id="usageLimit"
                       type="number"
                       value={formData.usageLimit}
                       onChange={(e) => setFormData({...formData, usageLimit: e.target.value})}
                       placeholder="Ilimitado"
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="perUserLimit">Límite por Usuario</Label>
+                    <Label htmlFor="perUserLimit" className="dark:text-gray-300">Límite por Usuario</Label>
                     <Input
                       id="perUserLimit"
                       type="number"
                       value={formData.perUserLimit}
                       onChange={(e) => setFormData({...formData, perUserLimit: e.target.value})}
                       placeholder="Ilimitado"
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="validFrom">Válido Desde *</Label>
+                    <Label htmlFor="validFrom" className="dark:text-gray-300">Válido Desde *</Label>
                     <Input
                       id="validFrom"
                       type="date"
                       value={formData.validFrom}
                       onChange={(e) => setFormData({...formData, validFrom: e.target.value})}
                       required
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="validUntil">Válido Hasta</Label>
+                    <Label htmlFor="validUntil" className="dark:text-gray-300">Válido Hasta</Label>
                     <Input
                       id="validUntil"
                       type="date"
                       value={formData.validUntil}
                       onChange={(e) => setFormData({...formData, validUntil: e.target.value})}
                       placeholder="Sin fecha de vencimiento"
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="description">Descripción</Label>
+                  <Label htmlFor="description" className="dark:text-gray-300">Descripción</Label>
                   <Input
                     id="description"
                     value={formData.description}
                     onChange={(e) => setFormData({...formData, description: e.target.value})}
                     placeholder="Ej: Descuento de verano 2025"
+                    className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                 </div>
 
@@ -368,9 +377,9 @@ export default function CouponsAdminPage() {
                     id="active"
                     checked={formData.active}
                     onChange={(e) => setFormData({...formData, active: e.target.checked})}
-                    className="w-4 h-4"
+                    className="w-4 h-4 dark:accent-blue-600"
                   />
-                  <Label htmlFor="active" className="cursor-pointer">
+                  <Label htmlFor="active" className="cursor-pointer dark:text-gray-300">
                     Cupón activo
                   </Label>
                 </div>
@@ -395,15 +404,15 @@ export default function CouponsAdminPage() {
         {/* Lista de cupones */}
         {loading ? (
           <div className="text-center py-12">
-            <Loader2 className="h-12 w-12 text-gray-400 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">Cargando cupones...</p>
+            <Loader2 className="h-12 w-12 text-gray-400 dark:text-gray-500 animate-spin mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-gray-400">Cargando cupones...</p>
           </div>
         ) : coupons.length === 0 ? (
-          <Card>
+          <Card className="bg-white dark:bg-gray-800">
             <CardContent className="p-12 text-center">
-              <Tag className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No hay cupones</h3>
-              <p className="text-gray-600 mb-4">
+              <Tag className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2 dark:text-white">No hay cupones</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
                 Crea tu primer cupón de descuento
               </p>
               <Button onClick={() => { setShowForm(true); setEditingId(null); resetForm() }}>
@@ -415,31 +424,31 @@ export default function CouponsAdminPage() {
         ) : (
           <div className="grid gap-4">
             {coupons.map((coupon) => (
-              <Card key={coupon.id}>
+              <Card key={coupon.id} className="bg-white dark:bg-gray-800">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
-                        <h3 className="text-2xl font-bold text-blue-600">{coupon.code}</h3>
+                        <h3 className="text-2xl font-bold text-blue-600 dark:text-blue-400">{coupon.code}</h3>
                         {coupon.active ? (
-                          <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded">
+                          <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium rounded">
                             Activo
                           </span>
                         ) : (
-                          <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
+                          <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-400 text-xs font-medium rounded">
                             Inactivo
                           </span>
                         )}
                       </div>
 
                       {coupon.description && (
-                        <p className="text-gray-600 mb-3">{coupon.description}</p>
+                        <p className="text-gray-600 dark:text-gray-400 mb-3">{coupon.description}</p>
                       )}
 
                       <div className="grid md:grid-cols-3 gap-4 mb-3">
                         <div>
-                          <p className="text-xs text-gray-600">Descuento</p>
-                          <p className="font-semibold text-green-600">
+                          <p className="text-xs text-gray-600 dark:text-gray-400">Descuento</p>
+                          <p className="font-semibold text-green-600 dark:text-green-400">
                             {coupon.discountType === 'PERCENTAGE' 
                               ? `${coupon.discountValue}%` 
                               : formatCurrency(coupon.discountValue)}
@@ -447,20 +456,20 @@ export default function CouponsAdminPage() {
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-600">Usos</p>
-                          <p className="font-semibold">
+                          <p className="text-xs text-gray-600 dark:text-gray-400">Usos</p>
+                          <p className="font-semibold dark:text-white">
                             {coupon.usageCount} / {coupon.usageLimit || '∞'}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-600">Compra Mínima</p>
-                          <p className="font-semibold">
+                          <p className="text-xs text-gray-600 dark:text-gray-400">Compra Mínima</p>
+                          <p className="font-semibold dark:text-white">
                             {coupon.minPurchase ? formatCurrency(coupon.minPurchase) : 'Sin mínimo'}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
                         <div className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
                           Válido desde: {new Date(coupon.validFrom).toLocaleDateString('es-PE')}

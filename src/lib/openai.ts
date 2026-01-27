@@ -17,7 +17,7 @@ export interface ChatMessage {
 }
 
 // Respuestas automáticas inteligentes cuando no hay API key
-function getAutoResponse(userMessage: string, context?: any): string {
+export function getAutoResponse(userMessage: string, context?: any): string {
   const msg = userMessage.toLowerCase()
   
   // Si hay un producto específico seleccionado, dar detalles completos
@@ -27,14 +27,27 @@ function getAutoResponse(userMessage: string, context?: any): string {
   }
   
   // Si hay productos en el contexto, incluirlos en la respuesta
-  if (context?.products) {
+  if (context?.products && !context?.noProductsFound) {
+    // Si el contexto tiene productos encontrados, mostrarlos siempre
     if (msg.includes('telefono') || msg.includes('celular') || msg.includes('smartphone')) {
-      return `¡Claro! Tenemos estos smartphones disponibles:\n\n${context.products}\n\n💡 **Tip**: Dime cuál te interesa (ej: "quiero el Samsung S24" o "el iPhone 15") y te doy todos los detalles. 📱`
+      return `¡Claro! Tenemos estos smartphones disponibles:\n\n${context.products}\n\n💡 Tip: Dime cuál te interesa (ej: "quiero el Samsung S24" o "el iPhone 15") y te doy todos los detalles. 📱`
     }
     if (msg.includes('laptop') || msg.includes('computadora')) {
-      return `Perfecto, mira nuestras laptops disponibles:\n\n${context.products}\n\n💡 **Tip**: Dime cuál te gusta (ej: "quiero la MacBook Air" o "la HP Pavilion") para darte más info. 💻`
+      return `Perfecto, mira nuestras laptops disponibles:\n\n${context.products}\n\n💡 Tip: Dime cuál te gusta (ej: "quiero la MacBook Air" o "la HP Pavilion") para darte más info. 💻`
     }
-    return `Aquí están los productos que tenemos:\n\n${context.products}\n\n💡 **Tip**: Dime cuál te interesa específicamente para darte detalles completos y agregarlo a tu carrito. 😊`
+    // Si hay productos en contexto, mostrarlos siempre
+    return `¡Sí! Encontré estos productos:\n\n${context.products}\n\n💡 Tip: Dime cuál te interesa específicamente para darte detalles completos y agregarlo a tu carrito. 😊`
+  }
+  
+  // Si no hay productos encontrados, dar respuesta útil
+  if (context?.noProductsFound) {
+    const searchTerms = context.searchTerms || 'esa búsqueda'
+    return `Lo siento, no encontré productos específicos para "${searchTerms}". 😔\n\n¿Podrías ser más específico? Por ejemplo:\n• "Quiero un celular Samsung"\n• "Tienes polos Nike"\n• "Busco laptops HP"\n\nTambién puedes explorar nuestras categorías:\n• 👕 Ropa (polos, jeans, zapatillas)\n• 💻 Electrónica (celulares, laptops, accesorios)\n• 🍔 Alimentos (productos orgánicos, gourmet)\n• 📦 Otros productos\n\n¿Qué te interesa? 😊`
+  }
+  
+  // Si no hay productos pero pregunta por algo específico, dar respuesta útil
+  if (msg.includes('carpa') || msg.includes('carpas') || msg.includes('camping') || msg.includes('toldo') || msg.includes('tienda')) {
+    return 'Lo siento, no encontré productos de carpas o camping en este momento. ¿Te interesa ver otros productos? Tenemos ropa, electrónica, alimentos y más. 🏕️'
   }
   
   if (msg.includes('hola') || msg.includes('buenos') || msg.includes('buenas')) {

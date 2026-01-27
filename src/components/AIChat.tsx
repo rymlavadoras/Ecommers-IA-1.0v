@@ -58,7 +58,20 @@ export function AIChat() {
         }),
       })
 
-      if (!response.ok) throw new Error('Error al enviar mensaje')
+      if (!response.ok) {
+        let errorData: any = { error: 'Error desconocido' }
+        try {
+          errorData = await response.json()
+        } catch (e) {
+          const text = await response.text()
+          errorData = { error: text || 'Error al procesar respuesta del servidor' }
+        }
+        
+        // Mostrar detalles del error si están disponibles
+        const errorMessage = errorData.error || errorData.details || 'Error al enviar mensaje'
+        const errorDetails = errorData.suggestion ? `\n\n💡 ${errorData.suggestion}` : ''
+        throw new Error(`${errorMessage}${errorDetails}`)
+      }
 
       const data = await response.json()
       const assistantMessage: Message = { 
@@ -72,13 +85,14 @@ export function AIChat() {
       if (data.products) {
         setLastProducts(data.products)
       }
-    } catch (error) {
-      console.error('Error:', error)
+    } catch (error: any) {
+      console.error('Error en chat:', error)
+      const errorMessage = error.message || 'Lo siento, hubo un error. Por favor intenta nuevamente.'
       setMessages(prev => [
         ...prev,
         {
           role: 'assistant',
-          content: 'Lo siento, hubo un error. Por favor intenta nuevamente.',
+          content: `❌ ${errorMessage}\n\nSi el problema persiste, verifica tu conexión o intenta más tarde.`,
         },
       ])
     } finally {
