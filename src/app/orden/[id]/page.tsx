@@ -176,16 +176,16 @@ export default function OrderTrackingPage() {
   const currentIndex = statusOrder.indexOf(currentStatus)
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b sticky top-0 z-10">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <header className="bg-white dark:bg-gray-900 border-b dark:border-gray-800 sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
             <Button variant="ghost" onClick={() => router.back()}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold">Seguimiento de Pedido</h1>
-              <p className="text-sm text-gray-600">#{order.orderNumber}</p>
+              <h1 className="text-xl font-bold dark:text-white">Seguimiento de Pedido</h1>
+              <p className="text-sm text-gray-600 dark:text-gray-400">#{order.orderNumber}</p>
             </div>
           </div>
         </div>
@@ -193,16 +193,16 @@ export default function OrderTrackingPage() {
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Estado Actual */}
-        <Card className="mb-6">
+        <Card className="mb-6 bg-white dark:bg-gray-800">
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
               <div className={`w-16 h-16 ${currentConfig.bgColor} rounded-full flex items-center justify-center flex-shrink-0`}>
                 <CurrentIcon className={`h-8 w-8 ${currentConfig.color}`} />
               </div>
               <div className="flex-1">
-                <h2 className="text-2xl font-bold mb-1">{currentConfig.label}</h2>
-                <p className="text-gray-600">{currentConfig.description}</p>
-                <p className="text-sm text-gray-500 mt-1">
+                <h2 className="text-2xl font-bold mb-1 dark:text-white">{currentConfig.label}</h2>
+                <p className="text-gray-600 dark:text-gray-300">{currentConfig.description}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   Pedido realizado el {new Date(order.createdAt).toLocaleDateString('es-PE', {
                     day: 'numeric',
                     month: 'long',
@@ -216,9 +216,9 @@ export default function OrderTrackingPage() {
 
         {/* Timeline de Estados */}
         {currentStatus !== 'CANCELLED' && (
-          <Card className="mb-6">
+          <Card className="mb-6 bg-white dark:bg-gray-800">
             <CardHeader>
-              <CardTitle>Progreso del Pedido</CardTitle>
+              <CardTitle className="dark:text-white">Progreso del Pedido</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="relative">
@@ -248,10 +248,10 @@ export default function OrderTrackingPage() {
 
                         {/* Texto */}
                         <div className="flex-1">
-                          <h3 className={`font-semibold ${isActive ? 'text-blue-600' : 'text-gray-900'}`}>
+                          <h3 className={`font-semibold ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>
                             {config.label}
                           </h3>
-                          <p className="text-sm text-gray-600">{config.description}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">{config.description}</p>
                         </div>
                       </div>
                     </div>
@@ -264,19 +264,19 @@ export default function OrderTrackingPage() {
 
         <div className="grid md:grid-cols-2 gap-6">
           {/* Información de Envío */}
-          <Card>
+          <Card className="bg-white dark:bg-gray-800">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 dark:text-white">
                 <MapPin className="h-5 w-5" />
                 Información de Envío
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-start gap-2">
-                <User className="h-4 w-4 text-gray-500 mt-0.5" />
+                <User className="h-4 w-4 text-gray-500 dark:text-gray-400 mt-0.5" />
                 <div>
-                  <p className="text-sm text-gray-600">Nombre</p>
-                  <p className="font-medium">{order.customerName}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Nombre</p>
+                  <p className="font-medium dark:text-white">{order.customerName}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
@@ -307,20 +307,20 @@ export default function OrderTrackingPage() {
           </Card>
 
           {/* Información de Pago */}
-          <Card>
+          <Card className="bg-white dark:bg-gray-800">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 dark:text-white">
                 <CreditCard className="h-5 w-5" />
                 Información de Pago
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <p className="text-sm text-gray-600">Método de Pago</p>
-                <p className="font-medium">{order.paymentMethod}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Método de Pago</p>
+                <p className="font-medium dark:text-white">{order.paymentMethod}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Estado del Pago</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Estado del Pago</p>
                 <span className={`inline-block px-2 py-1 rounded text-sm font-medium ${
                   order.paymentStatus === 'COMPLETED' 
                     ? 'bg-green-100 text-green-700' 
@@ -354,9 +354,9 @@ export default function OrderTrackingPage() {
         </div>
 
         {/* Productos */}
-        <Card className="mt-6">
+        <Card className="mt-6 bg-white dark:bg-gray-800">
           <CardHeader>
-            <CardTitle>Productos ({order.items.length})</CardTitle>
+            <CardTitle className="dark:text-white">Productos ({order.items.length})</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">

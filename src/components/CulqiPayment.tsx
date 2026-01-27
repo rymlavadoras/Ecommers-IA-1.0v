@@ -75,7 +75,13 @@ export function CulqiPayment({ amount, email, orderId, onSuccess, onError }: Cul
       if (!expiryMonth || !expiryYear) {
         throw new Error('Fecha de expiración inválida')
       }
-      if (parseInt(expiryYear) < new Date().getFullYear()) {
+      // Validar fecha de expiración (considerando mes y año)
+      const currentYear = new Date().getFullYear()
+      const currentMonth = new Date().getMonth() + 1
+      const expYear = parseInt(expiryYear)
+      const expMonth = parseInt(expiryMonth)
+      
+      if (expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
         throw new Error('La tarjeta está vencida')
       }
 

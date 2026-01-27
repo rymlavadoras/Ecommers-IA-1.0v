@@ -245,8 +245,8 @@ export default function AdminOrderDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b sticky top-0 z-10">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <header className="bg-white dark:bg-gray-900 border-b dark:border-gray-800 sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -254,8 +254,8 @@ export default function AdminOrderDetailPage() {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div>
-                <h1 className="text-xl font-bold">Orden #{order.orderNumber}</h1>
-                <p className="text-sm text-gray-600">
+                <h1 className="text-xl font-bold dark:text-white">Orden #{order.orderNumber}</h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   {new Date(order.createdAt).toLocaleDateString('es-PE', {
                     day: 'numeric',
                     month: 'long',
@@ -281,13 +281,13 @@ export default function AdminOrderDetailPage() {
           {/* Columna izquierda - Info principal */}
           <div className="lg:col-span-2 space-y-6">
             {/* Cambiar Estado */}
-            <Card>
+            <Card className="bg-white dark:bg-gray-800">
               <CardHeader>
-                <CardTitle>Gestión de Estado</CardTitle>
+                <CardTitle className="dark:text-white">Gestión de Estado</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
                     Actualiza el estado de la orden para notificar al cliente
                   </p>
                   <div className="flex gap-3">
@@ -315,9 +315,9 @@ export default function AdminOrderDetailPage() {
             </Card>
 
             {/* Productos */}
-            <Card>
+            <Card className="bg-white dark:bg-gray-800">
               <CardHeader>
-                <CardTitle>Productos ({order.items.length})</CardTitle>
+                <CardTitle className="dark:text-white">Productos ({order.items.length})</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -337,9 +337,9 @@ export default function AdminOrderDetailPage() {
                         )}
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-semibold">{item.product.name}</h3>
-                        <p className="text-sm text-gray-600">SKU: {item.product.sku}</p>
-                        <p className="text-sm text-gray-600">Cantidad: {item.quantity}</p>
+                        <h3 className="font-semibold dark:text-white">{item.product.name}</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">SKU: {item.product.sku}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Cantidad: {item.quantity}</p>
                       </div>
                       <div className="text-right">
                         <p className="font-bold">{formatCurrency(item.price * item.quantity)}</p>
@@ -370,17 +370,17 @@ export default function AdminOrderDetailPage() {
           {/* Columna derecha - Info del cliente y totales */}
           <div className="space-y-6">
             {/* Cliente */}
-            <Card>
+            <Card className="bg-white dark:bg-gray-800">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 dark:text-white">
                   <User className="h-5 w-5" />
                   Información del Cliente
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <p className="text-sm text-gray-600">Nombre</p>
-                  <p className="font-medium">{order.customerName}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Nombre</p>
+                  <p className="font-medium dark:text-white">{order.customerName}</p>
                 </div>
                 {order.customerDni && (
                   <div>
@@ -422,20 +422,20 @@ export default function AdminOrderDetailPage() {
             </Card>
 
             {/* Pago */}
-            <Card>
+            <Card className="bg-white dark:bg-gray-800">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 dark:text-white">
                   <CreditCard className="h-5 w-5" />
                   Información de Pago
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <p className="text-sm text-gray-600">Método de Pago</p>
-                  <p className="font-medium">{order.paymentMethod}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Método de Pago</p>
+                  <p className="font-medium dark:text-white">{order.paymentMethod}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Estado del Pago</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Estado del Pago</p>
                   <span className={`inline-block px-2 py-1 rounded text-sm font-medium ${
                     order.paymentStatus === 'COMPLETED' 
                       ? 'bg-green-100 text-green-700' 
@@ -462,12 +462,12 @@ export default function AdminOrderDetailPage() {
             </Card>
 
             {/* Totales */}
-            <Card>
+            <Card className="bg-white dark:bg-gray-800">
               <CardHeader>
-                <CardTitle>Resumen de Pago</CardTitle>
+                <CardTitle className="dark:text-white">Resumen de Pago</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-sm dark:text-gray-300">
                   <span>Subtotal</span>
                   <span>{formatCurrency(order.subtotal)}</span>
                 </div>

@@ -19,62 +19,32 @@ export async function POST(request: NextRequest) {
     let searchResults = ''
     let products: any[] = []
     
-    // Detectar si está pidiendo información o buscando productos
-    const askingForProducts = 
-      msg.includes('telefono') || msg.includes('celular') || msg.includes('smartphone') || msg.includes('iphone') || msg.includes('samsung') ||
-      msg.includes('laptop') || msg.includes('computadora') || msg.includes('mac') ||
-      msg.includes('polo') || msg.includes('jean') || msg.includes('zapatilla') || msg.includes('ropa') || msg.includes('nike') || msg.includes('adidas') ||
-      msg.includes('alimento') || msg.includes('comida') || msg.includes('arroz') || msg.includes('aceite') || msg.includes('cafe') || msg.includes('quinua') ||
-      msg.includes('producto') || msg.includes('tienes') || msg.includes('venden') || msg.includes('hay') ||
-      msg.includes('precio') || msg.includes('cuánto') || msg.includes('cuesta') || msg.includes('cuanto') ||
-      msg.includes('mostrar') || msg.includes('ver') || msg.includes('busco') || msg.includes('quiero') || msg.includes('necesito') ||
-      msg.includes('oferta') || msg.includes('descuento') || msg.includes('barato')
-
-    if (askingForProducts) {
-      // Extraer palabras clave para búsqueda flexible
-      const keywords = msg.split(' ').filter((w: string) => w.length > 3)
+    // Detectar si está buscando productos usando búsqueda semántica inteligente
+    // No dependemos de palabras clave exactas, sino de búsqueda flexible en BD
+    const isProductQuery = msg.length > 2 // Cualquier mensaje con más de 2 caracteres puede ser búsqueda
+    
+    if (isProductQuery) {
+      // Extraer todas las palabras significativas (más de 2 caracteres)
+      const words = msg.split(/\s+/).filter((w: string) => w.length > 2)
       
-      // Determinar categoría
-      let category = ''
-      if (msg.match(/(telefono|celular|smartphone|laptop|computadora|electr|iphone|samsung|mac|airpods|ps5|xbox|teclado|mouse|monitor)/i)) {
-        category = 'ELECTRONICA'
-      } else if (msg.match(/(polo|jean|zapatilla|ropa|casaca|nike|adidas|puma|short|buzo|medias|pantalon)/i)) {
-        category = 'ROPA'
-      } else if (msg.match(/(alimento|comida|arroz|aceite|leche|cafe|quinua|miel|pasta|sal|pisco|chocolate)/i)) {
-        category = 'ALIMENTOS'
-      } else if (msg.match(/(mochila|botella|yoga|perfume|lentes|balon|carpa|sabanas)/i)) {
-        category = 'OTROS'
-      }
-
-      // Construir consulta dinámica
+      // Construir consulta de búsqueda semántica flexible
       const where: any = { active: true }
       
-      if (category) {
-        where.category = category
-      }
-
-      // Búsqueda inteligente por texto en nombre o descripción
-      const searchTerms = [
-        ...keywords,
-        msg.includes('samsung') && 'samsung',
-        msg.includes('iphone') && 'iphone',
-        msg.includes('apple') && 'apple',
-        msg.includes('nike') && 'nike',
-        msg.includes('adidas') && 'adidas',
-        msg.includes('mac') && 'macbook',
-      ].filter(Boolean)
-
-      if (searchTerms.length > 0) {
-        where.OR = searchTerms.flatMap(term => [
-          { name: { contains: term, mode: 'insensitive' } },
-          { description: { contains: term, mode: 'insensitive' } },
-          { brand: { contains: term, mode: 'insensitive' } },
+      // Si hay palabras, buscar en nombre, descripción, marca, categoría y SKU
+      if (words.length > 0) {
+        where.OR = words.flatMap((word: string) => [
+          { name: { contains: word, mode: 'insensitive' } },
+          { description: { contains: word, mode: 'insensitive' } },
+          { brand: { contains: word, mode: 'insensitive' } },
+          { sku: { contains: word, mode: 'insensitive' } },
+          { category: { contains: word, mode: 'insensitive' } },
         ])
       }
 
+      // Buscar productos con búsqueda flexible
       products = await prisma.product.findMany({
         where,
-        take: 6,
+        take: 8, // Más resultados para mejor matching
         orderBy: [
           { featured: 'desc' },
           { stock: 'desc' }
@@ -91,16 +61,20 @@ export async function POST(request: NextRequest) {
           sku: true,
           sizes: true,
           colors: true,
-          images: true, // Para los botones del chat
+          images: true,
         },
       })
 
-      // Si no encontró nada, buscar en TODO el catálogo
-      if (products.length === 0 && !category) {
+      // Si no encontró resultados específicos, hacer búsqueda más amplia
+      // Buscar productos destacados o populares como fallback
+      if (products.length === 0) {
         products = await prisma.product.findMany({
           where: { active: true },
           take: 5,
-          orderBy: { featured: 'desc' },
+          orderBy: [
+            { featured: 'desc' },
+            { createdAt: 'desc' }
+          ],
           select: {
             id: true,
             name: true,
@@ -113,7 +87,7 @@ export async function POST(request: NextRequest) {
             sku: true,
             sizes: true,
             colors: true,
-            images: true, // Para los botones del chat
+            images: true,
           },
         })
       }
