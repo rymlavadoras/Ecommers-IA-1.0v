@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Smartphone, Copy, CheckCircle } from 'lucide-react'
@@ -86,9 +87,14 @@ export function YapePayment({ amount, orderId, phone, onConfirm }: YapePaymentPr
               <div className="text-center">
                 <p className="text-sm font-medium mb-2 dark:text-gray-300">O escanea el código QR:</p>
                 <div className="inline-block p-4 bg-white dark:bg-gray-900 rounded-lg border-2 border-purple-200 dark:border-purple-800">
-                  <div className="w-48 h-48 bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">QR Code</p>
-                    {/* Aquí iría la imagen: <Image src={yapeQrCode} alt="Yape QR" width={192} height={192} /> */}
+                  <div className="w-48 h-48 bg-white dark:bg-gray-800 flex items-center justify-center rounded overflow-hidden">
+                    <Image 
+                      src={yapeQrCode} 
+                      alt="Yape QR Code" 
+                      width={192} 
+                      height={192}
+                      className="object-contain"
+                    />
                   </div>
                 </div>
               </div>
