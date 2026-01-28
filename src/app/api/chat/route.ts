@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getChatCompletion, ChatMessage } from '@/lib/openai'
+// import { getChatCompletion, ChatMessage } from '@/lib/openai' // OPENAI COMENTADO
+import { getChatCompletion, ChatMessage } from '@/lib/gemini' // GEMINI ACTIVO
 import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
@@ -19,45 +20,83 @@ export async function POST(request: NextRequest) {
     let searchResults = ''
     let products: any[] = []
     
-    // Detectar si está buscando productos usando búsqueda semántica inteligente
-    // No dependemos de palabras clave exactas, sino de búsqueda flexible en BD
-    const isProductQuery = msg.length > 2 // Cualquier mensaje con más de 2 caracteres puede ser búsqueda
+    // Detectar si está buscando productos
+    const isProductQuery = msg.length > 2
     
     if (isProductQuery) {
-      // Extraer todas las palabras significativas (más de 2 caracteres)
-      // Filtrar SOLO palabras que definitivamente no son productos
-      // NO filtrar "hay", "tienes", "tengo" porque pueden ser parte de preguntas válidas
-      const stopWords = ['quiero', 'necesito', 'busco', 'dame', 'muestra', 'mostrar', 'ver', 'quieres', 'puedes', 'me', 'te', 'le', 'se', 'de', 'la', 'el', 'un', 'una', 'unos', 'unas', 'los', 'las', 'del', 'al', 'por', 'para', 'con', 'sin', 'sobre', 'entre']
-      const words = msg.split(/\s+/)
-        .filter((w: string) => w.length > 2) // Palabras de más de 2 caracteres
-        .filter((w: string) => !stopWords.includes(w.toLowerCase())) // Filtrar stop words
+      // USAR GEMINI para extraer SOLO palabras clave de productos (sustantivos relevantes)
+      // Esto es inteligente: la IA entiende qué producto busca el usuario
+      let finalSearchTerms: string[] = []
       
-      // Construir consulta de búsqueda semántica flexible
+      try {
+        const { GoogleGenerativeAI } = await import('@google/generative-ai')
+        const geminiApiKey = process.env.GEMINI_API_KEY
+        
+        if (geminiApiKey && geminiApiKey.startsWith('AIza') && geminiApiKey.length > 20) {
+          const genAIInstance = new GoogleGenerativeAI(geminiApiKey)
+          const model = genAIInstance.getGenerativeModel({ model: 'gemini-2.5-flash' })
+          
+          // Pedirle a Gemini que extraiga solo sustantivos de productos
+          const extractionPrompt = `Extrae SOLO las palabras clave de productos/sustantivos del mensaje. Ignora verbos, artículos, preposiciones.
+
+Mensaje: "${lastUserMessage}"
+
+Ejemplos:
+- "quiero un balon o pelota" → balon, pelota
+- "tienes cafe?" → cafe  
+- "ire a jugar, tienes algun balon?" → balon
+- "algo de aceite" → aceite
+
+Responde SOLO con palabras clave separadas por comas, sin explicaciones:`
+          
+          const result = await model.generateContent(extractionPrompt)
+          const response = await result.response
+          const extractedText = response.text().trim()
+          
+          // Extraer palabras clave de la respuesta
+          finalSearchTerms = extractedText
+            .split(/[,\n]/)
+            .map((w: string) => w.trim().toLowerCase().replace(/[.,!?¿¡]/g, ''))
+            .filter((w: string) => w.length >= 3)
+          
+          // console.log('🤖 Gemini extrajo palabras clave:', finalSearchTerms) // Debug comentado
+        }
+      } catch (geminiError: any) {
+        // console.warn('⚠️ Error usando Gemini para extraer palabras:', geminiError.message) // Debug comentado
+      }
+      
+      // Fallback: si Gemini no funcionó o no extrajo nada, usar búsqueda simple
+      if (finalSearchTerms.length === 0) {
+        const allWords = msg.split(/\s+/)
+          .map((w: string) => w.toLowerCase().replace(/[.,!?¿¡]/g, ''))
+          .filter((w: string) => w.length >= 4)
+        
+        const wordsToFilter = ['quiero', 'tienes', 'tiene', 'hay', 'algo', 'algun', 'tambien', 'ire', 'jugar', 'beber', 'comer', 'llevar', 'casualidad']
+        finalSearchTerms = allWords.filter((w: string) => !wordsToFilter.includes(w))
+      }
+      
+      // console.log('🔍 Términos finales de búsqueda:', finalSearchTerms) // Debug comentado
+      
+      // Construir consulta de búsqueda: buscar solo palabras relevantes
       const where: any = { active: true }
       
-      // Si hay palabras, buscar en nombre, descripción, marca y SKU
-      // NOTA: category es un Enum, no se puede usar contains
-      if (words.length > 0) {
-        const orConditions = words.flatMap((word: string) => {
-          const conditions: any[] = [
+      // Si hay palabras relevantes, buscar en TODOS los campos con OR
+      if (finalSearchTerms.length > 0) {
+        const searchConditions: any[] = []
+        
+        // Para cada palabra relevante, buscar en todos los campos
+        finalSearchTerms.forEach((word: string) => {
+          searchConditions.push(
             { name: { contains: word, mode: 'insensitive' } },
             { description: { contains: word, mode: 'insensitive' } },
             { brand: { contains: word, mode: 'insensitive' } },
-            { sku: { contains: word, mode: 'insensitive' } },
-          ]
-          
-          // category es Enum, buscar por igualdad exacta (sin mode)
-          const categoryUpper = word.toUpperCase()
-          if (['ROPA', 'ELECTRONICA', 'ALIMENTOS', 'OTROS'].includes(categoryUpper)) {
-            conditions.push({ category: categoryUpper })
-          }
-          
-          return conditions
+            { sku: { contains: word, mode: 'insensitive' } }
+          )
         })
         
-        // Solo agregar OR si hay condiciones
-        if (orConditions.length > 0) {
-          where.OR = orConditions
+        // Usar OR: encuentra productos que coincidan con CUALQUIERA de las condiciones
+        if (searchConditions.length > 0) {
+          where.OR = searchConditions
         }
       }
 
@@ -67,7 +106,7 @@ export async function POST(request: NextRequest) {
         
         products = await prisma.product.findMany({
           where,
-          take: 8, // Más resultados para mejor matching
+          take: 8,
           orderBy: [
             { featured: 'desc' },
             { stock: 'desc' }
@@ -87,6 +126,10 @@ export async function POST(request: NextRequest) {
             images: true,
           },
         })
+        
+        // LOG para debug (comentado)
+        // console.log('📦 Productos encontrados:', products.length, products.map(p => p.name))
+        // console.log('🔑 Términos de búsqueda usados:', finalSearchTerms)
       } catch (dbError: any) {
         console.error('Error buscando productos:', dbError.message)
         
@@ -119,11 +162,11 @@ export async function POST(request: NextRequest) {
         enrichedContext.noProductsFound = false // Hay productos encontrados
       } else {
         // Si no hay productos, indicar que no se encontraron resultados específicos
-        const searchTerms = words.length > 0 ? words.join(', ') : msg
-        searchResults = `\n\n📦 No encontré productos específicos para "${searchTerms}".`
+        const searchTermsDisplay = finalSearchTerms.length > 0 ? finalSearchTerms.join(', ') : msg
+        searchResults = `\n\n📦 No encontré productos específicos para "${searchTermsDisplay}".`
         enrichedContext.products = searchResults
         enrichedContext.noProductsFound = true
-        enrichedContext.searchTerms = searchTerms
+        enrichedContext.searchTerms = searchTermsDisplay
       }
     }
 
