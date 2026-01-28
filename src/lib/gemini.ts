@@ -99,19 +99,20 @@ export async function getChatCompletion(
   try {
     // Si no hay API key válida, usar respuestas automáticas
     if (!genAI) {
-      const currentApiKey = process.env.GEMINI_API_KEY
-      if (!currentApiKey) {
-        console.warn('⚠️ GEMINI_API_KEY no encontrada en .env - usando modo fallback')
-        console.warn('💡 Agrega GEMINI_API_KEY="tu-api-key" en tu archivo .env')
-      } else if (!currentApiKey.startsWith('AIza')) {
-        console.warn(`⚠️ GEMINI_API_KEY inválida: debe empezar con "AIza"`)
-        console.warn(`💡 Actual: "${currentApiKey.substring(0, 10)}..." (debe empezar con "AIza")`)
-      } else if (currentApiKey.length <= 20) {
-        console.warn(`⚠️ GEMINI_API_KEY muy corta: debe tener más de 20 caracteres`)
-        console.warn(`💡 Actual: ${currentApiKey.length} caracteres (necesita más de 20)`)
-      } else {
-        console.warn('⚠️ Gemini no inicializado correctamente - usando modo fallback')
-      }
+      // Debug comentado
+      // const currentApiKey = process.env.GEMINI_API_KEY
+      // if (!currentApiKey) {
+      //   console.warn('⚠️ GEMINI_API_KEY no encontrada en .env - usando modo fallback')
+      //   console.warn('💡 Agrega GEMINI_API_KEY="tu-api-key" en tu archivo .env')
+      // } else if (!currentApiKey.startsWith('AIza')) {
+      //   console.warn(`⚠️ GEMINI_API_KEY inválida: debe empezar con "AIza"`)
+      //   console.warn(`💡 Actual: "${currentApiKey.substring(0, 10)}..." (debe empezar con "AIza")`)
+      // } else if (currentApiKey.length <= 20) {
+      //   console.warn(`⚠️ GEMINI_API_KEY muy corta: debe tener más de 20 caracteres`)
+      //   console.warn(`💡 Actual: ${currentApiKey.length} caracteres (necesita más de 20)`)
+      // } else {
+      //   console.warn('⚠️ Gemini no inicializado correctamente - usando modo fallback')
+      // }
       const lastUserMessage = messages.filter(m => m.role === 'user').pop()
       return getAutoResponse(lastUserMessage?.content || '', context)
     }
